@@ -102,9 +102,23 @@
                     <Button Content="Test voice" Click="VoiceTest_Click" Margin="12,0,0,0" />
                 </StackPanel>
 
-                <TextBlock Text="Hotkey (hold to talk)" Style="{StaticResource Heading}" />
+                <TextBlock Text="Hotkeys" Style="{StaticResource Heading}" />
+                <TextBlock Text="Ask by voice (hold)" />
                 <local:HotkeyBox x:Name="HotkeyInput" />
-                <TextBlock Style="{StaticResource Hint}" Text="Click the box, then press the keys. Esc always stops Rahbar." />
+                <TextBlock Text="Type a question (tap)" Margin="0,8,0,0" />
+                <local:HotkeyBox x:Name="TypedHotkeyInput" />
+                <TextBlock Text="Dictation: types what you say into the text box you're in (hold)" Margin="0,8,0,0" />
+                <local:HotkeyBox x:Name="DictationHotkeyInput" />
+                <TextBlock Style="{StaticResource Hint}" Text="Click a box, then press the keys. Each hotkey must be different. Esc always stops Rahbar." />
+
+                <TextBlock Text="Walkthroughs" Style="{StaticResource Heading}" />
+                <CheckBox x:Name="ClickAdvanceBox" Content="Go to the next step when I click the highlighted button" />
+                <CheckBox x:Name="FreshShotBox" Content="Look at the screen again for every step (more accurate, a little slower)" Margin="0,4,0,0" />
+                <TextBlock Style="{StaticResource Hint}" Text="During a walkthrough, say &quot;next&quot;, &quot;agla&quot; or &quot;ho gaya&quot; (hold the hotkey), click Next, or click the highlighted button. Say &quot;back&quot; / &quot;pichla&quot;, &quot;dobara&quot; to repeat, &quot;bas&quot; to stop." />
+
+                <TextBlock Text="Updates" Style="{StaticResource Heading}" />
+                <TextBox x:Name="UpdateUrlBox" Padding="4" />
+                <TextBlock Style="{StaticResource Hint}" Text="Where new versions are published (a GitHub repository address or a shared folder). Leave empty if unsure." />
 
                 <TextBlock Text="Privacy" Style="{StaticResource Heading}" />
                 <CheckBox x:Name="PrivateBox" Content="Private mode: use only Ollama and offline speech (nothing leaves this PC)" />

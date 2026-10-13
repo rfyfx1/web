@@ -67,7 +67,7 @@ internal sealed class OverlayWindow : Window
             Child = _captionText,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Bottom,
-            Margin = new Thickness(0, 0, 0, 70),
+            Margin = new Thickness(0, 0, 0, 84), // leaves room for the step pill below
             Opacity = 0,
             Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 2, Opacity = 0.5 },
         };
@@ -84,6 +84,8 @@ internal sealed class OverlayWindow : Window
             var ex = Win32.GetWindowLong(hwnd, Win32.GWL_EXSTYLE);
             Win32.SetWindowLong(hwnd, Win32.GWL_EXSTYLE,
                 ex | Win32.WS_EX_TRANSPARENT | Win32.WS_EX_LAYERED | Win32.WS_EX_TOOLWINDOW | Win32.WS_EX_NOACTIVATE);
+            // Keep our own drawings out of screenshots (Windows 10 2004+; ignored on older builds).
+            Win32.SetWindowDisplayAffinity(hwnd, Win32.WDA_EXCLUDEFROMCAPTURE);
             PlaceOnMonitor();
         };
         // WPF resizes the window when it lands on a monitor with a different DPI; put it back.

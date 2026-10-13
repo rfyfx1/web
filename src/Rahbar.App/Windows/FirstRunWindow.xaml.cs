@@ -53,7 +53,10 @@ public partial class FirstRunWindow : Window
                 $"How to use Rahbar:\n" +
                 $"• Hold {hk}, ask your question out loud, then let go.\n" +
                 $"• Just tap {hk} (without speaking) to hear what's on your screen.\n" +
-                $"• Press Esc to stop talking and clear the screen.\n\n" +
+                $"• Press Esc to stop talking and clear the screen.\n" +
+                $"• Step-by-step help: say \"next\" or \"agla\" (hold {hk}), click Next, or click the highlighted button.\n" +
+                $"• {_settings.TypedHotkey}: type a question instead of speaking.\n" +
+                $"• Hold {_settings.DictationHotkey}: dictate, and Rahbar types what you say.\n\n" +
                 $"Try it now: open Notepad, hold {hk} and say \"Where is the save button?\" or \"Save ka button kahan hai?\"\n\n" +
                 "Rahbar lives in the tray near the clock. Right-click its icon for Settings, Language, Private mode and Pause.";
         }

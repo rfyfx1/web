@@ -49,11 +49,12 @@ public partial class SettingsWindow : Window
         VoiceBox.SelectedIndex = idx < 0 ? 0 : idx + 1;
         RateSlider.Value = settings.SpeechRate;
 
-        HotkeyInput.Hotkey = new HotkeySettings
-        {
-            Ctrl = settings.Hotkey.Ctrl, Shift = settings.Hotkey.Shift, Alt = settings.Hotkey.Alt,
-            Win = settings.Hotkey.Win, Key = settings.Hotkey.Key,
-        };
+        HotkeyInput.Hotkey = Copy(settings.Hotkey);
+        TypedHotkeyInput.Hotkey = Copy(settings.TypedHotkey);
+        DictationHotkeyInput.Hotkey = Copy(settings.DictationHotkey);
+        ClickAdvanceBox.IsChecked = settings.AdvanceOnTargetClick;
+        FreshShotBox.IsChecked = settings.FreshScreenshotPerStep;
+        UpdateUrlBox.Text = settings.UpdateUrl;
         PrivateBox.IsChecked = settings.PrivateMode;
         DebugBox.IsChecked = settings.DebugMode;
     }
@@ -78,6 +79,9 @@ public partial class SettingsWindow : Window
         _pending.Set(SecretNames.Groq, GroqKey.Password);
         return s;
     }
+
+    private static HotkeySettings Copy(HotkeySettings h) =>
+        new() { Ctrl = h.Ctrl, Shift = h.Shift, Alt = h.Alt, Win = h.Win, Key = h.Key };
 
     private static string Or(string? text, string fallback) => string.IsNullOrWhiteSpace(text) ? fallback : text.Trim();
 
@@ -111,6 +115,13 @@ public partial class SettingsWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
+        var keys = new[] { HotkeyInput.Hotkey.ToString(), TypedHotkeyInput.Hotkey.ToString(), DictationHotkeyInput.Hotkey.ToString() };
+        if (keys.Distinct().Count() < keys.Length)
+        {
+            MessageBox.Show(this, "Two hotkeys are the same. Please give each one different keys.", "Rahbar");
+            return;
+        }
+
         var s = Snapshot();
         try
         {
@@ -135,6 +146,11 @@ public partial class SettingsWindow : Window
         _settings.PreferredVoice = s.PreferredVoice;
         _settings.SpeechRate = s.SpeechRate;
         _settings.Hotkey = HotkeyInput.Hotkey;
+        _settings.TypedHotkey = TypedHotkeyInput.Hotkey;
+        _settings.DictationHotkey = DictationHotkeyInput.Hotkey;
+        _settings.AdvanceOnTargetClick = ClickAdvanceBox.IsChecked == true;
+        _settings.FreshScreenshotPerStep = FreshShotBox.IsChecked == true;
+        _settings.UpdateUrl = UpdateUrlBox.Text.Trim();
         _settings.PrivateMode = PrivateBox.IsChecked == true;
         _settings.DebugMode = DebugBox.IsChecked == true;
         Saved?.Invoke();

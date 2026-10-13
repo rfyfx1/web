@@ -77,6 +77,24 @@ public sealed class AppSettings
 
     public HotkeySettings Hotkey { get; set; } = new();
 
+    /// <summary>Tap to type a question instead of speaking (quiet offices).</summary>
+    public HotkeySettings TypedHotkey { get; set; } = new() { Ctrl = true, Shift = true, Key = 0x20 };
+
+    /// <summary>Hold to dictate: whatever you say is typed into the focused text box.</summary>
+    public HotkeySettings DictationHotkey { get; set; } = new() { Ctrl = true, Alt = true, Key = 0x20 };
+
+    /// <summary>Name of the active skill file (without .md), or null for none.</summary>
+    public string? ActiveSkill { get; set; }
+
+    /// <summary>Clicking the highlighted target moves a walkthrough to the next step.</summary>
+    public bool AdvanceOnTargetClick { get; set; } = true;
+
+    /// <summary>Take a fresh screenshot for each walkthrough step so pointers match the changed screen.</summary>
+    public bool FreshScreenshotPerStep { get; set; } = true;
+
+    /// <summary>Where to look for updates (e.g. https://github.com/org/repo). Empty = no update checks.</summary>
+    public string UpdateUrl { get; set; } = "";
+
     /// <summary>Empty = pick a voice automatically for each reply's language.</summary>
     public string? PreferredVoice { get; set; }
 

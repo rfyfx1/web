@@ -16,6 +16,9 @@ public sealed class FallbackSpeechToText : ISpeechToText
 
     public string Name => string.Join(" → ", _providers.Select(p => p.Name));
 
+    /// <summary>The provider that produced the last transcript.</summary>
+    public ISpeechToText? LastUsed { get; private set; }
+
     public async Task<string> TranscribeAsync(byte[] wav, string? languageHint, string? stylePrompt, CancellationToken ct)
     {
         Exception? last = null;
@@ -24,7 +27,9 @@ public sealed class FallbackSpeechToText : ISpeechToText
             ct.ThrowIfCancellationRequested();
             try
             {
-                return await p.TranscribeAsync(wav, languageHint, stylePrompt, ct).ConfigureAwait(false);
+                var text = await p.TranscribeAsync(wav, languageHint, stylePrompt, ct).ConfigureAwait(false);
+                LastUsed = p;
+                return text;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception ex)

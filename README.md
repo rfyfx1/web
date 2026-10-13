@@ -12,11 +12,13 @@ Hindi (हिन्दी), Hinglish, Punjabi and others. Rahbar answers in the 
 
 ## Install (for the team)
 
-1. Download **Rahbar-win-x64** from the latest successful run on the repo's **Actions** tab
-   (*Build Rahbar* → open the run → *Artifacts*). Unzip it to get `Rahbar.exe`.
-2. Put `Rahbar.exe` somewhere permanent, e.g. `C:\Users\<you>\Apps\Rahbar\`, and double-click it.
+1. Download **Rahbar-…-installer** from the latest successful run on the repo's **Actions** tab
+   (*Build Rahbar* → open the run → *Artifacts*) and unzip it.
+2. Double-click **`Rahbar-win-Setup.exe`**. It installs for your user only (no admin needed),
+   adds a Start-menu shortcut and starts Rahbar.
    - Windows may say *"Windows protected your PC"* because the app isn't code-signed yet.
      Click **More info → Run anyway**.
+   - No install rights? Use `Rahbar-win-Portable.zip` instead: unzip it and run `Rahbar.exe`.
 3. The setup wizard opens (about 2 minutes):
    1. **Language**: keep **Auto** unless you always want one style.
    2. **Gemini key** (free): open <https://aistudio.google.com/apikey>, sign in, click
@@ -30,7 +32,12 @@ Hindi (हिन्दी), Hinglish, Punjabi and others. Rahbar answers in the 
 Each person uses **their own** free keys, so free limits apply per person. Keys are stored in
 **Windows Credential Manager**, never in files or logs.
 
-To start Rahbar with Windows: press `Win + R`, type `shell:startup`, and put a shortcut to `Rahbar.exe` there.
+To start Rahbar with Windows: press `Win + R`, type `shell:startup`, and put a copy of the
+Rahbar Start-menu shortcut there.
+
+**Updates:** an admin publishes the *update-feed* artifact (the whole `releases` folder) to a
+shared folder or GitHub Releases, and puts that address in **Settings → Updates**. After that,
+everyone uses tray → **Check for updates**.
 
 ## How to use
 
@@ -38,8 +45,27 @@ To start Rahbar with Windows: press `Win + R`, type `shell:startup`, and put a s
 |---|---|
 | **Hold Ctrl + Space**, speak, let go | Rahbar answers your question and points at the right spot |
 | **Tap Ctrl + Space** (don't speak) | Rahbar explains what's on the screen |
+| **Ctrl + Shift + Space** | Type a question instead of speaking (quiet offices) |
+| **Hold Ctrl + Alt + Space**, speak, let go | Dictation: Rahbar types what you said into the text box you're in, in any language |
 | **Esc** | Stops talking and clears the screen |
-| Right-click the tray icon | Settings, Language, Private mode, Pause, Quit |
+| Click the tray icon | Today's usage, History, Language, Skill, Private mode, Settings, Pause, Quit |
+
+### Step-by-step help (walkthroughs)
+
+For "how do I…" questions, Rahbar answers one step at a time. A small bar at the bottom shows
+**‹ Step 2/4 · Next ▸ · ✕**. To go on, do any of these:
+- click the highlighted button (Rahbar notices and moves on),
+- click **Next** on the bar,
+- hold the hotkey and say **"next"**, **"agla"**, **"ho gaya"**, **"اگلا"** or **"अगला"**.
+
+Say **"back" / "pichla"** to go back, **"dobara"** to repeat, and **"bas" / "stop"** to end.
+For each new step Rahbar looks at the screen again, so the pointer matches what changed.
+
+### Skills
+
+A skill is a text file with extra instructions for Rahbar, like a guide to Seller Central or
+your brand voice. Choose one from tray → **Skill**. To add your own, use **Skill → Open skills
+folder…** and drop in a `.md` file written in plain language. Two examples are included.
 
 While Rahbar listens, the screen edge **glows red** and the tray icon turns red. While it
 thinks, both turn amber. Rahbar takes a screenshot **only** when you press the hotkey, and
@@ -92,8 +118,11 @@ Button and menu names stay in English exactly as they appear on screen, so you c
 | The circle is in the wrong place | Turn on Debug mode, try again, and share the files in the log folder (tray → *Open log folder*). |
 | The answer is in the wrong language | Pick a fixed language in the tray **Language** menu instead of Auto. |
 | The answer is text only, no sound | No voice is installed for that language. See *Voices* above. |
+| Dictation types strange characters | Let go of all keys after speaking. Rahbar waits for Ctrl/Alt to be released before typing. |
+| Walkthrough doesn't move on when I click | Click right on the highlighted spot, or say "next". You can turn click-to-advance off in Settings. |
 
 Logs: `%AppData%\Rahbar\logs`. Settings: `%AppData%\Rahbar\settings.json`.
+History (text only, last 50): `%AppData%\Rahbar\history.json`. Skills: `%AppData%\Rahbar\skills`.
 
 ---
 
@@ -133,14 +162,19 @@ Key design points:
 
 ### Status
 
-**Phase 1 is built:** tray app, hold-to-talk hotkey, screenshot of the current monitor, Groq
+**Phase 1 (done):** tray app, hold-to-talk hotkey, screenshot of the current monitor, Groq
 transcription (with offline fallback), Gemini/Claude/Ollama brains, Windows voices, pointer
 overlay, Esc to cancel, settings with key **Test**, first-run wizard, 429 retry and backoff.
 
-Already in place from Phase 2: arrow and box spotlight pointers, caption bubble, multi-step
-answers (each step's pointer shows while it is spoken), Private-mode toggle, any-language and
-mixed-language support.
+**Phase 2 (built):**
+- arrow and box spotlight pointers, caption bubble
+- step-by-step walkthroughs: a ‹ Step n/N · Next ▸ · ✕ bar; advance by voice in any language,
+  by the Next button, or by clicking the highlighted target; a fresh screenshot for each step
+- typed questions, a history window (search and copy), a skills folder, dictation in any
+  language, a daily usage counter per provider
+- Private mode with Ollama, any-language and mixed-language support
+- a Velopack installer with "Check for updates"
+- Rahbar's own overlay and step bar are left out of screenshots (Windows 10 2004+)
 
-Still to do in Phase 2: Next/✕ step controls and saying "next" / "agla" to advance, typed
-questions (Ctrl+Shift+Space), history window, skills folder, dictation, usage counter, and a
-Velopack installer. Phase 1 uses GDI capture; Windows.Graphics.Capture can be added later.
+**Next:** Phase 3, agent mode (see `docs/PROMPT.md` §9), then Phase 4 SaaS. Phase 1 and 2 use
+GDI capture; Windows.Graphics.Capture can replace it later if needed.

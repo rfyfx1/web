@@ -50,6 +50,28 @@ public static class PromptBuilder
         return sb.ToString();
     }
 
+    /// <summary>
+    /// For step 2+ of a walkthrough: the screen has changed since the plan was made, so we send a
+    /// fresh screenshot and ask for just the next step, pointed at what is visible now.
+    /// </summary>
+    public static string BuildContinueText(string originalQuestion, IReadOnlyList<string> plannedSteps, int stepIndex, ScreenContext ctx)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("We are in the middle of a step-by-step walkthrough.");
+        sb.Append("The user's original question: ").AppendLine(string.IsNullOrWhiteSpace(originalQuestion) ? "(explain this screen)" : originalQuestion.Trim());
+        sb.AppendLine("The plan was:");
+        for (int i = 0; i < plannedSteps.Count; i++)
+            sb.Append(i + 1).Append(". ").AppendLine(plannedSteps[i]);
+        sb.AppendLine();
+        sb.AppendLine($"The user has finished step {stepIndex}. This is a NEW screenshot taken just now.");
+        sb.AppendLine($"Give ONLY step {stepIndex + 1}, pointing at where it is on THIS screenshot. " +
+                      "If the screen shows something unexpected (wrong page, a popup), help the user get back on track instead.");
+        sb.AppendLine("Return the same JSON shape with exactly one step, in the same language and style as before.");
+        if (ctx.CursorX is int cx && ctx.CursorY is int cy)
+            sb.AppendLine($"The mouse cursor is at about ({cx}, {cy}) in the screenshot.");
+        return sb.ToString();
+    }
+
     private static string Clean(string? s, string fallback)
     {
         if (string.IsNullOrWhiteSpace(s)) return fallback;

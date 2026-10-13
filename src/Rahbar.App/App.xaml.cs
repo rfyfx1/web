@@ -11,6 +11,7 @@ using Rahbar.App.Services;
 using Rahbar.App.Windows;
 using Rahbar.Core.Language;
 using Rahbar.Core.Settings;
+using Rahbar.Core.Storage;
 using Rahbar.Providers;
 using Serilog;
 
@@ -25,7 +26,11 @@ public partial class App : Application
     private SettingsStore _store = null!;
     private CredentialStore _secrets = null!;
     private ProviderFactory _factory = null!;
-    private MenuItem? _pauseItem, _privateItem;
+    private MenuItem? _pauseItem, _privateItem, _usageItem, _skillMenu;
+    private HistoryStore _history = null!;
+    private UsageCounter _usage = null!;
+    private SkillStore _skills = null!;
+    private HistoryWindow? _historyWindow;
     private readonly List<MenuItem> _languageItems = new();
 
     internal AppSettings Settings { get; private set; } = new();
@@ -62,8 +67,13 @@ public partial class App : Application
         _secrets = new CredentialStore();
         _factory = new ProviderFactory(new HttpClient { Timeout = TimeSpan.FromSeconds(45) }, _secrets);
 
+        _history = new HistoryStore(Path.Combine(DataFolder, "history.json"));
+        _usage = new UsageCounter(Path.Combine(DataFolder, "usage.json"));
+        _skills = new SkillStore(Path.Combine(DataFolder, "skills"));
+        try { _skills.EnsureExamples(); } catch (Exception ex) { Log.Warning(ex, "Couldn't create example skills"); }
+
         var overlays = new OverlayManager();
-        _assistant = new AssistantController(() => Settings, _factory, overlays, Path.Combine(DataFolder, "debug"));
+        _assistant = new AssistantController(() => Settings, _factory, overlays, _history, _usage, _skills, Path.Combine(DataFolder, "debug"));
         _assistant.StateChanged += OnStateChanged;
         _assistant.Problem += msg => { if (!string.IsNullOrEmpty(msg)) Notify("Rahbar", msg); };
 
@@ -71,9 +81,21 @@ public partial class App : Application
 
         try
         {
-            _hook = new HotkeyHook(Settings.Hotkey, Dispatcher) { Enabled = !Settings.Paused };
-            _hook.Pressed += _assistant.BeginListening;
-            _hook.Released += _assistant.EndListening;
+            _hook = new HotkeyHook(Settings, Dispatcher) { Enabled = !Settings.Paused };
+            _hook.Pressed += id =>
+            {
+                switch (id)
+                {
+                    case HotkeyId.Ask: _assistant.BeginListening(); break;
+                    case HotkeyId.Typed: _assistant.AskTyped(); break;
+                    case HotkeyId.Dictate: _assistant.BeginDictation(); break;
+                }
+            };
+            _hook.Released += id =>
+            {
+                if (id == HotkeyId.Ask) _assistant.EndListening();
+                else if (id == HotkeyId.Dictate) _assistant.EndDictation();
+            };
             _hook.Escape += () => _assistant.Cancel();
         }
         catch (Exception ex)
@@ -91,7 +113,12 @@ public partial class App : Application
     private void CreateTray()
     {
         var menu = new ContextMenu();
-        menu.Items.Add(Item("Ask (hold " + Settings.Hotkey + ")", (_, _) => Notify("How to ask", $"Hold {Settings.Hotkey}, speak, then let go.")));
+        _usageItem = new MenuItem { Header = _usage.Summary(), IsEnabled = false };
+        menu.Items.Add(_usageItem);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Item("Ask by voice (hold " + Settings.Hotkey + ")", (_, _) => Notify("How to ask", $"Hold {Settings.Hotkey}, speak, then let go.")));
+        menu.Items.Add(Item("Type a question (" + Settings.TypedHotkey + ")", (_, _) => _assistant?.AskTyped()));
+        menu.Items.Add(Item("History…", (_, _) => ShowHistory()));
         menu.Items.Add(new Separator());
 
         _privateItem = Item("Private mode (offline)", (_, _) => TogglePrivate());
@@ -112,12 +139,19 @@ public partial class App : Application
         menu.Items.Add(language);
         UpdateLanguageChecks();
 
+        _skillMenu = new MenuItem { Header = "Skill" };
+        _skillMenu.Items.Add(new MenuItem()); // placeholder so the submenu arrow shows; filled on open
+        _skillMenu.SubmenuOpened += (_, _) => FillSkillMenu();
+        menu.Items.Add(_skillMenu);
+
         menu.Items.Add(Item("Settings…", (_, _) => ShowSettings()));
         _pauseItem = Item(Settings.Paused ? "Resume Rahbar" : "Pause Rahbar", (_, _) => TogglePause());
         menu.Items.Add(_pauseItem);
-        menu.Items.Add(Item("Open log folder", (_, _) => OpenFolder(Path.Combine(DataFolder, "logs"))));
         menu.Items.Add(new Separator());
+        menu.Items.Add(Item("Check for updates", async (_, _) => Notify("Rahbar", await UpdateService.CheckAndApplyAsync(Settings.UpdateUrl))));
+        menu.Items.Add(Item("Open log folder", (_, _) => OpenFolder(Path.Combine(DataFolder, "logs"))));
         menu.Items.Add(Item("Quit", (_, _) => Shutdown()));
+        menu.Opened += (_, _) => _usageItem.Header = _usage.Summary();
 
         _tray = new TaskbarIcon
         {
@@ -127,6 +161,44 @@ public partial class App : Application
             MenuActivation = PopupActivationMode.LeftOrRightClick,
         };
         _tray.ForceCreate(false);
+    }
+
+    private void FillSkillMenu()
+    {
+        if (_skillMenu is null) return;
+        _skillMenu.Items.Clear();
+        var none = Item("None", (_, _) => SetSkill(null));
+        none.IsCheckable = true;
+        none.IsChecked = string.IsNullOrEmpty(Settings.ActiveSkill);
+        _skillMenu.Items.Add(none);
+        foreach (var name in _skills.List())
+        {
+            var n = name;
+            var mi = Item(n, (_, _) => SetSkill(n));
+            mi.IsCheckable = true;
+            mi.IsChecked = string.Equals(Settings.ActiveSkill, n, StringComparison.OrdinalIgnoreCase);
+            _skillMenu.Items.Add(mi);
+        }
+        _skillMenu.Items.Add(new Separator());
+        _skillMenu.Items.Add(Item("Open skills folder…", (_, _) => OpenFolder(_skills.Folder)));
+    }
+
+    private void SetSkill(string? name)
+    {
+        Settings.ActiveSkill = name;
+        SaveSettings();
+        if (name is not null) Notify("Rahbar", $"Skill on: {name}");
+    }
+
+    private void ShowHistory()
+    {
+        if (_historyWindow is { IsLoaded: true })
+        {
+            _historyWindow.Activate();
+            return;
+        }
+        _historyWindow = new HistoryWindow(_history);
+        _historyWindow.Show();
     }
 
     private static MenuItem Item(string header, RoutedEventHandler onClick)
@@ -143,7 +215,7 @@ public partial class App : Application
         if (_tray is null) return;
         _tray.IconSource = Icon(s switch
         {
-            AssistantState.Listening => "rahbar-listening.ico",
+            AssistantState.Listening or AssistantState.Dictating => "rahbar-listening.ico",
             AssistantState.Thinking => "rahbar-thinking.ico",
             _ when Settings.Paused => "rahbar-paused.ico",
             _ => "rahbar.ico",
@@ -153,6 +225,8 @@ public partial class App : Application
             AssistantState.Listening => "Rahbar – listening…",
             AssistantState.Thinking => "Rahbar – thinking…",
             AssistantState.Speaking => "Rahbar – answering (Esc to stop)",
+            AssistantState.WaitingForNext => "Rahbar – say \"next\" or click Next for the next step",
+            AssistantState.Dictating => "Rahbar – dictating…",
             _ => "Rahbar – hold " + Settings.Hotkey + " to ask",
         };
     }
@@ -206,7 +280,7 @@ public partial class App : Application
         SaveSettings();
         if (_hook is not null)
         {
-            _hook.Hotkey = Settings.Hotkey;
+            _hook.Update(Settings);
             _hook.Enabled = !Settings.Paused;
         }
         _privateItem!.IsChecked = Settings.PrivateMode;
@@ -226,6 +300,9 @@ public partial class App : Application
         }
         _settingsWindow = new SettingsWindow(Settings, _secrets, _factory);
         _settingsWindow.Saved += ApplySettings;
+        // Pause the hotkeys while Settings is open, so the hotkey boxes can record them.
+        if (_hook is not null) _hook.Enabled = false;
+        _settingsWindow.Closed += (_, _) => { if (_hook is not null) _hook.Enabled = !Settings.Paused; };
         _settingsWindow.Show();
     }
 

@@ -32,10 +32,16 @@ public sealed class AskPipeline
         _memory = memory;
     }
 
+    /// <summary>Raised with the provider name for every paid/free-tier request (usage counter).</summary>
+    public event Action<string>? RequestMade;
+
+    public string BrainName => _brain.Name;
+
     public async Task<string> TranscribeAsync(byte[]? wav, bool hasSpeech, LanguageProfile lang, CancellationToken ct)
     {
         if (wav is null || !hasSpeech) return "";
         var text = await _stt.TranscribeAsync(wav, lang.WhisperLanguage, lang.WhisperStylePrompt, ct).ConfigureAwait(false);
+        RequestMade?.Invoke((_stt as FallbackSpeechToText)?.LastUsed?.Name ?? _stt.Name);
         text = text.Trim();
         return TranscriptFilter.IsLikelyHallucination(text, lang.WhisperStylePrompt) ? "" : text;
     }
@@ -47,6 +53,26 @@ public sealed class AskPipeline
         var system = PromptBuilder.BuildSystemPrompt(screen.Context, lang, extraInstructions);
         var userText = PromptBuilder.BuildUserText(question, screen.Context, _memory.Recent());
 
+        var answer = await AskParsedAsync(screen, system, userText, ct).ConfigureAwait(false);
+        _memory.Add(explain ? "(explain this screen)" : question, answer.FullText);
+        return new AskResult(explain ? "" : question, answer, explain);
+    }
+
+    /// <summary>
+    /// Walkthrough step 2+: asks again with a fresh screenshot for just the next step.
+    /// <paramref name="stepIndex"/> is the zero-based index of the step to produce.
+    /// </summary>
+    public async Task<BrainStep> ContinueAsync(CapturedScreen screen, string originalQuestion, IReadOnlyList<string> plannedSteps,
+        int stepIndex, LanguageProfile lang, string? extraInstructions, CancellationToken ct)
+    {
+        var system = PromptBuilder.BuildSystemPrompt(screen.Context, lang, extraInstructions);
+        var userText = PromptBuilder.BuildContinueText(originalQuestion, plannedSteps, stepIndex, screen.Context);
+        var answer = await AskParsedAsync(screen, system, userText, ct).ConfigureAwait(false);
+        return answer.Steps[0];
+    }
+
+    private async Task<BrainAnswer> AskParsedAsync(CapturedScreen screen, string system, string userText, CancellationToken ct)
+    {
         BrainRequest Request(bool strict) => new()
         {
             Image = screen.Image,
@@ -59,21 +85,20 @@ public sealed class AskPipeline
         };
 
         var reply = await _brain.AskAsync(Request(false), ct).ConfigureAwait(false);
-        if (!BrainReplyParser.TryParse(reply.RawText, screen.Context.ImageWidth, screen.Context.ImageHeight, out var answer, out _))
-        {
-            reply = await _brain.AskAsync(Request(true), ct).ConfigureAwait(false);
-            if (!BrainReplyParser.TryParse(reply.RawText, screen.Context.ImageWidth, screen.Context.ImageHeight, out answer, out _))
-            {
-                // Last resort: speak whatever plain text came back rather than failing silently.
-                var plain = reply.RawText?.Trim();
-                if (string.IsNullOrEmpty(plain) || plain.StartsWith('{'))
-                    throw new FriendlyException("The AI sent an answer I couldn't read. Please ask again.");
-                answer = new BrainAnswer { Steps = { new BrainStep { Say = plain.Length > 600 ? plain[..600] : plain } } };
-            }
-        }
+        RequestMade?.Invoke(_brain.Name);
+        if (BrainReplyParser.TryParse(reply.RawText, screen.Context.ImageWidth, screen.Context.ImageHeight, out var answer, out _))
+            return answer;
 
-        _memory.Add(explain ? "(explain this screen)" : question, answer.FullText);
-        return new AskResult(explain ? "" : question, answer, explain);
+        reply = await _brain.AskAsync(Request(true), ct).ConfigureAwait(false);
+        RequestMade?.Invoke(_brain.Name);
+        if (BrainReplyParser.TryParse(reply.RawText, screen.Context.ImageWidth, screen.Context.ImageHeight, out answer, out _))
+            return answer;
+
+        // Last resort: speak whatever plain text came back rather than failing silently.
+        var plain = reply.RawText?.Trim();
+        if (string.IsNullOrEmpty(plain) || plain.StartsWith('{'))
+            throw new FriendlyException("The AI sent an answer I couldn't read. Please ask again.");
+        return new BrainAnswer { Steps = { new BrainStep { Say = plain.Length > 600 ? plain[..600] : plain } } };
     }
 }
 

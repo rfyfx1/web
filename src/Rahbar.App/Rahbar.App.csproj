@@ -10,12 +10,14 @@
     <ApplicationIcon>Assets\rahbar.ico</ApplicationIcon>
     <Version>0.1.0</Version>
     <Product>Rahbar</Product>
+    <StartupObject>Rahbar.App.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.3.2" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Serilog" Version="4.3.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\*.ico" />

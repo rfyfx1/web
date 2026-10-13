@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      VERSION: 0.2.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -21,13 +23,22 @@ jobs:
       - name: Unit tests
         run: dotnet test tests/Rahbar.Core.Tests -c Release --no-build --logger "console;verbosity=normal"
 
-      - name: Publish (single Rahbar.exe, no .NET install needed)
-        run: >
-          dotnet publish src/Rahbar.App -c Release -r win-x64 --self-contained true
-          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
-          -o publish
+      - name: Publish (self-contained, no .NET install needed)
+        run: dotnet publish src/Rahbar.App -c Release -r win-x64 --self-contained true -p:Version=${{ env.VERSION }} -o publish
+
+      - name: Package installer (Velopack)
+        run: |
+          dotnet tool install -g vpk --version 1.2.0
+          vpk pack --packId Rahbar --packVersion ${{ env.VERSION }} --packDir publish --mainExe Rahbar.exe --packTitle Rahbar --icon src/Rahbar.App/Assets/rahbar.ico --outputDir releases
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Rahbar-win-x64
-          path: publish/Rahbar.exe
+          name: Rahbar-${{ env.VERSION }}-installer
+          path: |
+            releases/*Setup.exe
+            releases/*Portable.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rahbar-${{ env.VERSION }}-update-feed
+          path: releases/
