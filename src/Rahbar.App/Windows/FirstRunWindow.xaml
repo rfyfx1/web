@@ -1,0 +1,88 @@
+<Window x:Class="Rahbar.App.Windows.FirstRunWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Rahbar.App.Windows"
+        Title="Welcome to Rahbar" Width="600" Height="520" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen" Icon="/Assets/rahbar.ico" FontSize="14">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="{StaticResource AccentBrush}" Padding="20,14">
+            <StackPanel>
+                <TextBlock x:Name="StepTitle" Foreground="White" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock x:Name="StepCounter" Foreground="#CCFBF1" Margin="0,2,0,0" />
+            </StackPanel>
+        </Border>
+        <Border DockPanel.Dock="Bottom" Padding="20,12" Background="#F3F4F6">
+            <DockPanel>
+                <Button x:Name="BackButton" Content="Back" Click="Back_Click" DockPanel.Dock="Left" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="NextButton" Content="Next" Style="{StaticResource PrimaryButton}" Click="Next_Click" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Margin="24,16,24,8">
+            <!-- 1. Language -->
+            <StackPanel x:Name="PageLanguage">
+                <TextBlock TextWrapping="Wrap" Text="Talk to Rahbar in any language: English, Urdu, Roman Urdu, Hindi, Hinglish, or a mix of them. 'Auto' replies in the same language and style you used." />
+                <TextBlock TextWrapping="Wrap" Margin="0,6,0,10" Foreground="#6B7280"
+                           Text="آپ کسی بھی زبان میں بات کر سکتے ہیں۔  ·  Aap kisi bhi zubaan mein baat kar sakte hain." />
+                <ListBox x:Name="LanguageList" DisplayMemberPath="DisplayName" Height="190" />
+            </StackPanel>
+
+            <!-- 2. Gemini key -->
+            <StackPanel x:Name="PageGemini" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap" Text="Rahbar uses Google Gemini to look at your screen. Each person uses their own free key." />
+                <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                    1. Open <Hyperlink Click="GeminiLink_Click">aistudio.google.com/apikey</Hyperlink> and sign in with Google.<LineBreak />
+                    2. Click "Create API key" and copy it.<LineBreak />
+                    3. Paste it here:
+                </TextBlock>
+                <PasswordBox x:Name="GeminiKey" Margin="0,8,0,0" Padding="5" />
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button x:Name="GeminiTest" Content="Test" Click="GeminiTest_Click" />
+                    <TextBlock x:Name="GeminiResult" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />
+                </StackPanel>
+                <TextBlock Style="{StaticResource Hint}" Margin="0,16,0,0"
+                           Text="Privacy: free-tier AI providers may use requests to improve their models. Don't use free mode on screens with private data, or switch on Private mode (local Ollama) for private work." />
+            </StackPanel>
+
+            <!-- 3. Groq key -->
+            <StackPanel x:Name="PageGroq" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap" Text="Rahbar uses Groq (Whisper) to understand your voice, including Urdu, Hindi and mixed speech. It's free too." />
+                <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                    1. Open <Hyperlink Click="GroqLink_Click">console.groq.com/keys</Hyperlink> and sign in.<LineBreak />
+                    2. Click "Create API Key" and copy it.<LineBreak />
+                    3. Paste it here:
+                </TextBlock>
+                <PasswordBox x:Name="GroqKey" Margin="0,8,0,0" Padding="5" />
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button x:Name="GroqTest" Content="Test" Click="GroqTest_Click" />
+                    <TextBlock x:Name="GroqResult" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />
+                </StackPanel>
+                <TextBlock Style="{StaticResource Hint}" Margin="0,16,0,0"
+                           Text="No key? Rahbar can fall back to Windows' offline recognition, but it only understands English." />
+            </StackPanel>
+
+            <!-- 4. Mic test -->
+            <StackPanel x:Name="PageMic" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap" Text="Let's check your microphone. Press Start and say something in any language, for example: 'Save ka button kahan hai?'" />
+                <Button x:Name="MicButton" Content="Start (4 seconds)" Click="Mic_Click" HorizontalAlignment="Left" Margin="0,14,0,0" />
+                <ProgressBar x:Name="MicLevel" Height="14" Maximum="1" Margin="0,12,0,0" Foreground="{StaticResource AccentBrush}" />
+                <TextBlock x:Name="MicResult" TextWrapping="Wrap" Margin="0,12,0,0" FontSize="16" />
+            </StackPanel>
+
+            <!-- 5. Hotkey -->
+            <StackPanel x:Name="PageHotkey" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap" Text="Hold this key combination, ask your question, then let go. Ctrl + Space works for most people." />
+                <local:HotkeyBox x:Name="HotkeyInput" Margin="0,12,0,0" />
+                <TextBlock Style="{StaticResource Hint}" Text="To change it: click the box, then press the new keys. Esc always stops Rahbar." />
+            </StackPanel>
+
+            <!-- 6. Done -->
+            <StackPanel x:Name="PageDone" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap" FontSize="16" Text="You're all set! 🎉" FontWeight="SemiBold" />
+                <TextBlock x:Name="DoneText" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="22" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>
